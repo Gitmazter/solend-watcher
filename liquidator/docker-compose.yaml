@@ -10,13 +10,20 @@ services:
       # production or devnet
       - APP=production
       # A private RPC provider is strongly recommended. A public rpc will often fail and crash the liquidator
-      - RPC_ENDPOINT=
+      - RPC_ENDPOINT=https://fasterai-ams.rpcpool.com/048aa06d-5a1b-4134-b319-9e1f3f92371c
       # Throttle not avoid rate limiting
       - THROTTLE=0
       # Padding against each wallet rebalancing target to avoid unnecessary rebalancing.
       # If wallet is expected to hold 2 ETH. The rebalancer will buy if wallet has less than 2 * (1-REBALANCE_PADDING) ETH and sell
       # if wallet has over 2 * (1+REBALANCE_PADDING) ETH
       - REBALANCE_PADDING=0.2
+      - THROTTLE=60000
+      - MIN_DEPOSIT_VAL=100
+      - NOTIFICATION_BREAKPOINT=0.95
+      - ANTI_SPAM_SPREAD=0.05
+      - CHAT_ID =1616728496
+      - BOT_USERNAME = "@BMJWatcherBot"
+      - BOT_TOKEN = "6723468858:AAG2bpNCVznoAleIr8ycApCdYIX-un0ndAY"
       # Specify target below for wallet auto rebalancing. Ensure to keep the format "tokenA:amount tokenB:amount ..."
       # USDC is the base currency that every other token will swap against so besure to allocate an access amount of USDC
       # Note: the amount is in token unit so ETH:2 means we'll always rebalance to have 2 ETH

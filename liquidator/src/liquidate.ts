@@ -20,6 +20,17 @@ import { unwrapTokens } from 'libs/unwrap/unwrapToken';
 import { parseObligation } from '@solendprotocol/solend-sdk';
 import { getMarkets } from './config';
 
+const CHAT_ID = process.env.CHAT_ID
+const BOT_TOKEN = process.env.BOT_TOKEN
+
+async function sendLiquidationWarn(message:string) {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
+    await fetch(url);
+}
+
+// list to track which position has received a near liquidation warning
+let notifiedPositions:string[] = [];
+
 dotenv.config();
 
 async function runLiquidator() {
@@ -38,22 +49,24 @@ async function runLiquidator() {
     wrapUnwrapSOL: false,
   });
   const target = getWalletDistTarget();
-
-  console.log(`
-    app: ${process.env.APP}
-    rpc: ${rpcEndpoint}
-    wallet: ${payer.publicKey.toBase58()}
-    auto-rebalancing: ${target.length > 0 ? 'ON' : 'OFF'}
-    rebalancingDistribution: ${process.env.TARGETS}
-    
-    Running against ${markets.length} pools
-  `);
+  const introStr = `
+  app: ${process.env.APP}
+  rpc: ${rpcEndpoint}
+  wallet: ${payer.publicKey.toBase58()}
+  auto-rebalancing: ${target.length > 0 ? 'ON' : 'OFF'}
+  rebalancingDistribution: ${process.env.TARGETS}
+  
+  Running against ${markets.length} pools
+  `
+  console.log(introStr);
+  sendLiquidationWarn(introStr)
 
   for (let epoch = 0; ; epoch += 1) {
     for (const market of markets) {
       const tokensOracle = await getTokensOracleData(connection, market);
       const allObligations = await getObligations(connection, market.address);
       const allReserves = await getReserves(connection, market.address);
+
 
       for (let obligation of allObligations) {
         try {
@@ -70,8 +83,15 @@ async function runLiquidator() {
             );
 
             // Do nothing if obligation is healthy
-            if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
-              break;
+            // if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
+            //   break;
+            // }
+            const index = notifiedPositions.indexOf(obligation.pubkey.toString())
+            if (borrowedValue.div(unhealthyBorrowValue).toNumber() < Number(process.env.NOTIFICATION_BREAKPOINT) && index > -1) {
+                // Send all clear msg
+                await sendLiquidationWarn(`Obligation ${obligation.pubkey.toString()} is no longer near its liquidation level`)
+                // remove from notifiedPositions
+                notifiedPositions.splice(index, 1);
             }
 
             // select repay token that has the highest market value
@@ -82,7 +102,7 @@ async function runLiquidator() {
             deposits.forEach((deposit) => {
               if (!selectedDeposit || deposit.marketValue.gt(selectedDeposit.marketValue)) {
                 selectedDeposit = deposit;
-              }
+              };
             });
 
             if (!selectedBorrow || !selectedDeposit) {
