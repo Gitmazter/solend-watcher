@@ -3,6 +3,7 @@ import {
 } from '@solana/spl-token';
 import {
   Account,
+  ComputeBudgetProgram,
   Connection,
   PublicKey,
   Transaction,
@@ -133,8 +134,10 @@ export const liquidateAndRedeem = async (
       payer.publicKey,
     ),
   );
+  const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: Number(PRIORITY_RATE)});
 
-  const tx = new Transaction().add(...ixs);
+  const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
   const { blockhash } = await connection.getRecentBlockhash();
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;

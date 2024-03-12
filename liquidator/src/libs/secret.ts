@@ -3,6 +3,7 @@ import fs from 'fs';
 export function readSecret(secretName) {
   const path = process.env.SECRET_PATH || `/run/secrets/${secretName}`;
   try {
+    
     return fs.readFileSync(path, 'utf8');
   } catch (err) {
     if (err.code !== 'ENOENT') {

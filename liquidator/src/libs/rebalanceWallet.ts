@@ -15,6 +15,8 @@ const PADDING = Number(process.env.REBALANCE_PADDING) || 0.2;
 export async function rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target) {
   const info = await aggregateInfo(tokensOracle, walletBalances, connection, payer, target);
   // calculate token diff between current & target value
+  console.log(info);
+  
   info.forEach((tokenInfo) => {
     tokenInfo.diff = tokenInfo.balance - tokenInfo.target;
     tokenInfo.diffUSD = tokenInfo.diff * tokenInfo.price;
@@ -25,7 +27,7 @@ export async function rebalanceWallet(connection, payer, jupiter, tokensOracle, 
 
   for (const tokenInfo of info) {
     // skip usdc since it is our base currency
-    if (tokenInfo.symbol === 'USDC') {
+    if (tokenInfo.symbol === 'ISC') {
       continue;
     }
 
@@ -37,8 +39,8 @@ export async function rebalanceWallet(connection, payer, jupiter, tokensOracle, 
     let fromTokenInfo;
     let toTokenInfo;
     let amount;
-
-    const USDCTokenInfo = findWhere(info, { symbol: 'USDC' });
+    const symbol = 'ISC'
+    const USDCTokenInfo = findWhere(info, { symbol });
     if (!USDCTokenInfo) {
       console.error('failed to find USDC token info');
     }

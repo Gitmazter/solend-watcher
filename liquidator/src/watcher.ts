@@ -92,7 +92,7 @@ async function runLiquidator() {
                 });
                 
                 
-                if (deposit_value > Number(process.env.MIN_DEPOSIT_VAL)) {
+                // if (deposit_value > Number(process.env.MIN_DEPOSIT_VAL)) {
                     let borrowString = ''
                     let borrowTotal = new BigNumber(0);
 
@@ -140,7 +140,7 @@ market address: ${market.address}
                     borrowedValue: ${borrowedValue.toFixed(6)}
                     borrowed/deposited: ${utilizationRatio}
                     market address: ${market.address}`);
-                }
+                // }
             }
 
             // Do nothing if obligation is healthy

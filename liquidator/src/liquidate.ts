@@ -19,13 +19,16 @@ import { Jupiter } from '@jup-ag/core';
 import { unwrapTokens } from 'libs/unwrap/unwrapToken';
 import { parseObligation } from '@solendprotocol/solend-sdk';
 import { getMarkets } from './config';
+import axios, { Axios } from 'axios';
 
 const CHAT_ID = process.env.CHAT_ID
 const BOT_TOKEN = process.env.BOT_TOKEN
+const NOTIX_BP = Number(process.env.NOTIFICATION_BREAKPOINT)
+const ANTI_SPAM = Number(process.env.ANTI_SPAM_SPREAD)
 
 async function sendLiquidationWarn(message:string) {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
-    await fetch(url);
+    await axios.get(url);
 }
 
 // list to track which position has received a near liquidation warning
@@ -41,13 +44,15 @@ async function runLiquidator() {
   const markets = await getMarkets();
   const connection = new Connection(rpcEndpoint, 'confirmed');
   // liquidator's keypair.
+  
   const payer = new Account(JSON.parse(readSecret('keypair')));
-  const jupiter = await Jupiter.load({
-    connection,
-    cluster: 'mainnet-beta',
-    user: Keypair.fromSecretKey(payer.secretKey),
-    wrapUnwrapSOL: false,
-  });
+//   const jupiter = await Jupiter.load({
+//     connection,
+//     cluster: 'mainnet-beta',
+//     user: Keypair.fromSecretKey(payer.secretKey),
+//     wrapUnwrapSOL: false,
+//   });
+  console.log('working');
   const target = getWalletDistTarget();
   const introStr = `
   app: ${process.env.APP}
@@ -59,7 +64,7 @@ async function runLiquidator() {
   Running against ${markets.length} pools
   `
   console.log(introStr);
-  sendLiquidationWarn(introStr)
+  await sendLiquidationWarn(introStr)
 
   for (let epoch = 0; ; epoch += 1) {
     for (const market of markets) {
@@ -82,16 +87,29 @@ async function runLiquidator() {
               tokensOracle,
             );
 
-            // Do nothing if obligation is healthy
-            // if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
-            //   break;
-            // }
             const index = notifiedPositions.indexOf(obligation.pubkey.toString())
-            if (borrowedValue.div(unhealthyBorrowValue).toNumber() < Number(process.env.NOTIFICATION_BREAKPOINT) && index > -1) {
+            // Send all clear msg for a position that is no longer unhealthy and has passed the anti spam spread
+            // To avoid updated each time the Breakpoint is crossed in case a Position hovers at the BP
+            const borrowHealthRatio =borrowedValue.div(unhealthyBorrowValue).toNumber()
+            if (borrowHealthRatio < NOTIX_BP-ANTI_SPAM && index > -1) {
                 // Send all clear msg
                 await sendLiquidationWarn(`Obligation ${obligation.pubkey.toString()} is no longer near its liquidation level`)
+                console.log(`Obligation ${obligation.pubkey.toString()} is no longer near its liquidation level`)
                 // remove from notifiedPositions
                 notifiedPositions.splice(index, 1);
+            }
+
+            if (borrowHealthRatio > NOTIX_BP && index == -1 && borrowedValue.isLessThan(unhealthyBorrowValue)) {
+                // Position is no0t at liquidation but has passed notification BP
+                await sendLiquidationWarn(`Obligation ${obligation.pubkey.toString()} is at ${borrowedValue.div(unhealthyBorrowValue).toNumber()*100}% of its liquidation level`)
+                console.log(`Obligation ${obligation.pubkey.toString()} is at ${borrowedValue.div(unhealthyBorrowValue).toNumber()*100}% of its liquidation level`)
+                // Send message and add to notified pos
+                notifiedPositions.push(obligation.pubkey.toString())
+            }   
+
+            // Do nothing if obligation is healthy
+            if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
+              break;
             }
 
             // select repay token that has the highest market value
@@ -109,19 +127,23 @@ async function runLiquidator() {
               // skip toxic obligations caused by toxic oracle data
               break;
             }
-
-            console.log(`Obligation ${obligation.pubkey.toString()} is underwater
-              borrowedValue: ${borrowedValue.toString()}
-              unhealthyBorrowValue: ${unhealthyBorrowValue.toString()}
-              market address: ${market.address}`);
+            const underwaterStr = `Obligation ${obligation.pubkey.toString()} is underwater
+            borrowedValue: ${borrowedValue.toString()}
+            unhealthyBorrowValue: ${unhealthyBorrowValue.toString()}
+            market address: ${market.address}`
+            console.log(underwaterStr);
+            await sendLiquidationWarn(underwaterStr);
 
             // get wallet balance for selected borrow token
             const { balanceBase } = await getWalletTokenData(connection, market, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
             if (balanceBase === 0) {
               console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
+              await sendLiquidationWarn(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
               break;
             } else if (balanceBase < 0) {
               console.log(`failed to get wallet balance for ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}. 
+                Potentially network error or token account does not exist in wallet`);
+              await sendLiquidationWarn(`failed to get wallet balance for ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}. 
                 Potentially network error or token account does not exist in wallet`);
               break;
             }
@@ -142,6 +164,8 @@ async function runLiquidator() {
               new PublicKey(obligation.pubkey),
             );
             obligation = parseObligation(obligation.pubkey, postLiquidationObligation!);
+            console.log(`obligation successfully liquidated`);
+            await sendLiquidationWarn(`obligation successfully liquidated`);
           }
         } catch (err) {
           console.error(`error liquidating ${obligation!.pubkey.toString()}: `, err);
@@ -153,7 +177,10 @@ async function runLiquidator() {
 
       if (target.length > 0) {
         const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
-        await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
+        console.log(walletBalances);
+        // await sendLiquidationWarn(JSON.stringify(walletBalances))
+        
+        // await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
       }
 
       // Throttle to avoid rate limiter

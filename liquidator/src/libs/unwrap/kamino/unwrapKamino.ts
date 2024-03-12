@@ -16,7 +16,7 @@ export const checkAndUnwrapKaminoTokens = async (
   for (const strategyPubkey of config.kamino.strategies) {
     const strategy = await kamino.getStrategyByAddress(strategyPubkey);
     if (!strategy) {
-      console.error('Could not fetch strategy from the chain');
+    //   console.error('Could not fetch strategy from the chain');
       continue;
     }
     const strategyWithAddress = { strategy, address: strategyPubkey };

@@ -1,5 +1,4 @@
-FROM node:16-alpine3.11
-
+FROM node:alpine
 
 # Create Directory for the Container
 RUN mkdir -p /home/solend/app
@@ -9,9 +8,10 @@ WORKDIR /home/solend/app
 ENV NODE_OPTIONS=--max_old_space_size=4096
 
 # Only copy the package.json file to work directory
-COPY package.json package-lock.json ./
+COPY package.json ./
+COPY .env ./
 # Install all Packages
-RUN npm install
+RUN npm install --force
 
 # Copy all other source code to work directory
 COPY src /home/solend/app/src

@@ -8,6 +8,7 @@ const SLIPPAGE = 2;
 const SWAP_TIMEOUT_SEC = 20;
 
 export default async function swap(connection: Connection, wallet: Keypair, jupiter: Jupiter, fromTokenInfo, toTokenInfo, amount: number) {
+
   console.log({
     fromToken: fromTokenInfo.symbol,
     toToken: toTokenInfo.symbol,
