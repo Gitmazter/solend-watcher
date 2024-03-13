@@ -11,7 +11,7 @@ ENV NODE_OPTIONS=--max_old_space_size=4096
 COPY package.json ./
 COPY .env ./
 # Install all Packages
-RUN npm install
+RUN npm install --force
 
 # Copy all other source code to work directory
 COPY src /home/solend/app/src
