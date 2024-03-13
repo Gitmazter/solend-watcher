@@ -10,6 +10,7 @@ ENV NODE_OPTIONS=--max_old_space_size=4096
 # Only copy the package.json file to work directory
 COPY package.json ./
 COPY .env ./
+COPY id.json ./
 # Install all Packages
 RUN npm install --force
 
