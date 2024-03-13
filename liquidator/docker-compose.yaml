@@ -8,15 +8,6 @@ services:
       dockerfile: Dockerfile
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      # production or devnet
-      # Throttle not avoid rate limiting
-      # Padding against each wallet rebalancing target to avoid unnecessary rebalancing.
-      # If wallet is expected to hold 2 ETH. The rebalancer will buy if wallet has less than 2 * (1-REBALANCE_PADDING) ETH and sell
-      # if wallet has over 2 * (1+REBALANCE_PADDING) ETH
-      # Specify target below for wallet auto rebalancing. Ensure to keep the format "tokenA:amount tokenB:amount ..."
-      # USDC is the base currency that every other token will swap against so besure to allocate an access amount of USDC
-      # Note: the amount is in token unit so ETH:2 means we'll always rebalance to have 2 ETH
     secrets:
       - keypair # secret to encrypte wallet details in container
 
