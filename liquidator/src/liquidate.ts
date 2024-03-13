@@ -15,11 +15,11 @@ import { Borrow, calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
 import { rebalanceWallet } from 'libs/rebalanceWallet';
-import { Jupiter } from '@jup-ag/core';
 import { unwrapTokens } from 'libs/unwrap/unwrapToken';
 import { parseObligation } from '@solendprotocol/solend-sdk';
 import { getMarkets } from './config';
 import axios, { Axios } from 'axios';
+import { Jupiter } from '@jup-ag/core';
 
 const CHAT_ID = process.env.CHAT_ID
 const BOT_TOKEN = process.env.BOT_TOKEN
@@ -45,14 +45,16 @@ async function runLiquidator() {
   const connection = new Connection(rpcEndpoint, 'confirmed');
   // liquidator's keypair.
   
-  const payer = new Account(JSON.parse(readSecret('keypair')));
-//   const jupiter = await Jupiter.load({
-//     connection,
-//     cluster: 'mainnet-beta',
-//     user: Keypair.fromSecretKey(payer.secretKey),
-//     wrapUnwrapSOL: false,
-//   });
-  console.log('working');
+  const payer = Keypair.fromSeed(Uint8Array.from(JSON.parse(readSecret('keypair')).slice(0,32)));
+  console.log(payer.publicKey);
+  
+  const jupiter = await Jupiter.load({
+    connection,
+    cluster: 'mainnet-beta',
+    user: payer,
+    wrapUnwrapSOL: false,
+  });
+
   const target = getWalletDistTarget();
   const introStr = `
   app: ${process.env.APP}
@@ -136,6 +138,8 @@ async function runLiquidator() {
 
             // get wallet balance for selected borrow token
             const { balanceBase } = await getWalletTokenData(connection, market, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
+            console.log(balanceBase);
+            
             if (balanceBase === 0) {
               console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
               await sendLiquidationWarn(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
@@ -150,7 +154,7 @@ async function runLiquidator() {
 
             // Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
             // 50% val of all borrowed assets.
-            await liquidateAndRedeem(
+            const res = await liquidateAndRedeem(
               connection,
               payer,
               balanceBase,
@@ -160,12 +164,14 @@ async function runLiquidator() {
               obligation,
             );
 
+            
+
             const postLiquidationObligation = await connection.getAccountInfo(
               new PublicKey(obligation.pubkey),
             );
             obligation = parseObligation(obligation.pubkey, postLiquidationObligation!);
             console.log(`obligation successfully liquidated`);
-            await sendLiquidationWarn(`obligation successfully liquidated`);
+            await sendLiquidationWarn(`obligation successfully liquidated ${res.toString()}`);
           }
         } catch (err) {
           console.error(`error liquidating ${obligation!.pubkey.toString()}: `, err);
@@ -179,8 +185,9 @@ async function runLiquidator() {
         const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
         console.log(walletBalances);
         // await sendLiquidationWarn(JSON.stringify(walletBalances))
-        
-        // await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
+        console.log(target);
+            
+        await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
       }
 
       // Throttle to avoid rate limiter

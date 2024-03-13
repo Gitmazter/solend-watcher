@@ -20,7 +20,8 @@
   "dependencies": {
     "@hubbleprotocol/hubble-config": "=1.0.127",
     "@hubbleprotocol/kamino-sdk": "=1.0.131",
-    "@jup-ag/core": "=1.0.0-beta.22",
+    "@jup-ag/core": "^4.0.0-beta.21",
+    "@metaplex-foundation/beet-solana": "^0.4.1",
     "@project-serum/anchor": "^0.25.0",
     "@project-serum/sol-wallet-adapter": "^0.2.0",
     "@pythnetwork/client": "^2.0.0",
@@ -45,6 +46,7 @@
     "got": "^9.6.0",
     "hot-shots": "^8.5.0",
     "js-sha256": "^0.9.0",
+    "jsbi": "^4.3.0",
     "lodash": "^4.17.15",
     "lru-cache": "^5.1.1",
     "snake-case": "^3.0.4",

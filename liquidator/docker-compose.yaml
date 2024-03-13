@@ -10,27 +10,13 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       # production or devnet
-      - APP=production
-      # A private RPC provider is strongly recommended. A public rpc will often fail and crash the liquidator
-      - RPC_ENDPOINT=https://solana-mainnet.g.alchemy.com/v2/Gaio8rJEkfaiRC-OAI1hTOSNDp60C7WS
       # Throttle not avoid rate limiting
       # Padding against each wallet rebalancing target to avoid unnecessary rebalancing.
       # If wallet is expected to hold 2 ETH. The rebalancer will buy if wallet has less than 2 * (1-REBALANCE_PADDING) ETH and sell
       # if wallet has over 2 * (1+REBALANCE_PADDING) ETH
-      - CHAT_ID =1616728496
-      - BOT_USERNAME = "@BMJWatcherBot"
-      - BOT_TOKEN = "6723468858:AAG2bpNCVznoAleIr8ycApCdYIX-un0ndAY"
-      - THROTTLE=30000
-      - MIN_DEPOSIT_VAL=10
-      - PRIORITY_RATE=100000
-      - NOTIFICATION_BREAKPOINT=0.9
-      - ANTI_SPAM_SPREAD=0.05
       # Specify target below for wallet auto rebalancing. Ensure to keep the format "tokenA:amount tokenB:amount ..."
       # USDC is the base currency that every other token will swap against so besure to allocate an access amount of USDC
       # Note: the amount is in token unit so ETH:2 means we'll always rebalance to have 2 ETH
-      - TARGETS=ISC:2.5 JUP:5 JLP:2 INF:0.014
-      # For targeting specific markets. All markets can be found in https://api.solend.fi/v1/markets/configs?scope=all
-      - MARKET=HeVhqRY3i22om5a7WGYftAJ2NjJJ3Cg5jnmMCsfFhRG8
     secrets:
       - keypair # secret to encrypte wallet details in container
 

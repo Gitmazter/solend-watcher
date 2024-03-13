@@ -3,9 +3,11 @@ import { Jupiter } from '@jup-ag/core';
 import {
   Connection, Keypair, PublicKey,
 } from '@solana/web3.js';
+import JSBI from 'jsbi';
 
-const SLIPPAGE = 2;
-const SWAP_TIMEOUT_SEC = 20;
+const SLIPPAGE = 200;
+const SWAP_TIMEOUT_SEC = 40;
+const PRIORITY_RATE = 10000;
 
 export default async function swap(connection: Connection, wallet: Keypair, jupiter: Jupiter, fromTokenInfo, toTokenInfo, amount: number) {
 
@@ -20,13 +22,14 @@ export default async function swap(connection: Connection, wallet: Keypair, jupi
   const routes = await jupiter.computeRoutes({
     inputMint, // Mint address of the input token
     outputMint, // Mint address of the output token
-    inputAmount: amount, // raw input amount of tokens
-    slippage: SLIPPAGE, // The slippage in % terms
+    amount: JSBI.BigInt(amount), // raw input amount of tokens
+    slippageBps: SLIPPAGE, // The slippage in % terms
   });
 
   // Prepare execute exchange
   const { execute } = await jupiter.exchange({
     routeInfo: routes.routesInfos[0],
+    computeUnitPriceMicroLamports:PRIORITY_RATE
   });
 
   // Execute swap

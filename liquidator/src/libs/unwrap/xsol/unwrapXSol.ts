@@ -29,7 +29,7 @@ const UNSTAKE_POOL_ADDRESS = new PublicKey(
 
 export const checkAndUnwrapXSolTokens = async (
   connection: Connection,
-  payer: Account,
+  payer: Keypair,
 ) => {
   const [stakePoolWithdrawAuth] = PublicKey.findProgramAddressSync(
     [LAINE_ADDRESS_MAP.stakePool.toBuffer(), Buffer.from('withdraw')],

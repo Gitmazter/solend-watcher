@@ -2,7 +2,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import {
-  Account,
+  Keypair,
   ComputeBudgetProgram,
   Connection,
   PublicKey,
@@ -20,7 +20,7 @@ import { MarketConfig, MarketConfigReserve } from 'global';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
-  payer: Account,
+  payer: Keypair,
   liquidityAmount: number | string,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
@@ -135,7 +135,7 @@ export const liquidateAndRedeem = async (
     ),
   );
   const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: Number(PRIORITY_RATE)});
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 10000});
 
   const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
   const { blockhash } = await connection.getRecentBlockhash();
@@ -144,5 +144,6 @@ export const liquidateAndRedeem = async (
   tx.sign(payer);
 
   const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
-  await connection.confirmTransaction(txHash, 'processed');
+  await connection.confirmTransaction(txHash, 'finalized');
+  return txHash
 };

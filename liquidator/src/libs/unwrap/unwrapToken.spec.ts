@@ -2,6 +2,7 @@
 import {
   Account,
   Connection,
+  Keypair,
 } from '@solana/web3.js';
 import { unwrapTokens } from './unwrapToken';
 
@@ -14,7 +15,7 @@ const RPC_MAINNET = 'https://ssc-dao.genesysgo.net/';
   const connection = new Connection(RPC_MAINNET, 'confirmed');
 
   // open paper wallet (privatekey retracted)
-  const paperWallet = new Account();
+  const paperWallet = new Keypair();
   // console.log("Loaded ", paperWallet.publicKey.toBase58())
   // test unstake basis function
   const result = await unwrapTokens(connection, paperWallet);

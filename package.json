@@ -1,4 +1,11 @@
 {
   "private": true,
-  "workspaces": ["liquidator", "solend-sdk", "solend-lite"]
+  "workspaces": [
+    "liquidator",
+    "solend-sdk",
+    "solend-lite"
+  ],
+  "dependencies": {
+    "@metaplex-foundation/beet-solana": "^0.4.1"
+  }
 }

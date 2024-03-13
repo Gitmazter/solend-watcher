@@ -11,8 +11,7 @@
    "baseUrl": "src",
    "outDir": "build",
    "types": [
-     "node",
-     "jest",
+     "node"
    ],
    "skipLibCheck": true,
    "declaration": true,
