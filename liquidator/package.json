@@ -7,7 +7,7 @@
     "build": "rm -rf build/ && tsc -p tsconfig.json",
     "start": "ts-node -r tsconfig-paths/register build/liquidate.js",
     "lint": "eslint . --ext .js --ext .tsx,.ts,.js,.jsx src/ --fix .gitignore",
-    "compose-clean": "docker-compose rm -f"
+    "compose-clean": "docker-compose rm -f ./docker-compose.yaml"
   },
   "keywords": [
     "solend",
