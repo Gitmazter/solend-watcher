@@ -32,10 +32,12 @@ export const liquidateAndRedeem = async (
   const depositReserves = map(obligation.info.deposits, (deposit) => deposit.depositReserve);
   const borrowReserves = map(obligation.info.borrows, (borrow) => borrow.borrowReserve);
   const uniqReserveAddresses = [...new Set<String>(map(depositReserves.concat(borrowReserves), (reserve) => reserve.toString()))];
+  
   uniqReserveAddresses.forEach((reserveAddress) => {
     const reserveInfo: MarketConfigReserve = findWhere(lendingMarket!.reserves, {
       address: reserveAddress,
     });
+    
     const refreshReserveIx = refreshReserveInstruction(
       new PublicKey(reserveAddress),
       new PublicKey(reserveInfo.pythOracle),
@@ -135,14 +137,17 @@ export const liquidateAndRedeem = async (
     ),
   );
   const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 10000});
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 200000});
 
   const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
+
   const { blockhash } = await connection.getRecentBlockhash();
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;
   tx.sign(payer);
 
+  console.log(connection.simulateTransaction(tx));
+  
   const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
   await connection.confirmTransaction(txHash, 'finalized');
   return txHash

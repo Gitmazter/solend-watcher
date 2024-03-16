@@ -7,15 +7,15 @@ import BigNumber from 'bignumber.js';
 import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PublicKey } from '@solana/web3.js';
 import { TokenCount } from 'global';
-import swap from './swap';
+import {swap, swapV6 }from './swap';
+import { sendLiquidationError } from './tg';
 
 // Padding so we rebalance only when abs(target-actual)/target is greater than PADDING
 const PADDING = Number(process.env.REBALANCE_PADDING) || 0.2;
 
-export async function rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target) {
+export async function rebalanceWallet(connection, payer, tokensOracle, walletBalances, target) {
   const info = await aggregateInfo(tokensOracle, walletBalances, connection, payer, target);
   // calculate token diff between current & target value
-  console.log(info);
   
   info.forEach((tokenInfo) => {
     tokenInfo.diff = tokenInfo.balance - tokenInfo.target;
@@ -40,28 +40,28 @@ export async function rebalanceWallet(connection, payer, jupiter, tokensOracle, 
     let toTokenInfo;
     let amount;
     const symbol = 'ISC'
-    const USDCTokenInfo = findWhere(info, { symbol });
-    if (!USDCTokenInfo) {
-      console.error('failed to find USDC token info');
+    const ISCTokenInfo = findWhere(info, { symbol });
+    if (!ISCTokenInfo) {
+      console.error('failed to find ISC token info');
     }
 
     // negative diff means we need to buy
     if (tokenInfo.diff < 0) {
-      fromTokenInfo = USDCTokenInfo;
+      fromTokenInfo = ISCTokenInfo;
       toTokenInfo = tokenInfo;
       amount = (new BigNumber(tokenInfo.diffUSD).multipliedBy(fromTokenInfo.decimals)).abs();
 
       // positive diff means we sell
     } else {
       fromTokenInfo = tokenInfo;
-      toTokenInfo = USDCTokenInfo;
+      toTokenInfo = ISCTokenInfo;
       amount = new BigNumber(tokenInfo.diff).multipliedBy(fromTokenInfo.decimals);
     }
 
     try {
-      await swap(connection, payer, jupiter, fromTokenInfo, toTokenInfo, Math.floor(amount.toNumber()));
+      await swapV6(connection, payer, fromTokenInfo, toTokenInfo, Math.floor(amount.toNumber()));
     } catch (error) {
-      console.error({ error }, 'failed to swap tokens');
+      sendLiquidationError({error} + 'failed to swap tokens')
     }
   }
 }

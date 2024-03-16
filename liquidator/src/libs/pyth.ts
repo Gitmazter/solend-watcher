@@ -69,6 +69,6 @@ async function getTokenOracleData(connection: Connection, reserve: MarketConfigR
 }
 
 export async function getTokensOracleData(connection: Connection, market: MarketConfig) {
-  const promises: Promise<any>[] = market.reserves.map((reserve) => getTokenOracleData(connection, reserve));
+  const promises: Promise<any>[] = market.reserves.map((reserve) =>{return getTokenOracleData(connection, reserve)});
   return Promise.all(promises);
 }
