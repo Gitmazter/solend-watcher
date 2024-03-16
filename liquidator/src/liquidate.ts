@@ -173,7 +173,7 @@ async function runLiquidator() {
       // Rebalancing
       if (target.length > 0) {        
         const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
-        await rebalanceWallet(connection, payer, tokensOracle, walletBalances, target);
+        // await rebalanceWallet(connection, payer, tokensOracle, walletBalances, target);
       }
 
       // Throttle
