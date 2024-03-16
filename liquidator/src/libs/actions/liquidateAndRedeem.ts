@@ -137,7 +137,7 @@ export const liquidateAndRedeem = async (
     ),
   );
   const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 200000});
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 250000});
 
   const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
 
@@ -146,7 +146,7 @@ export const liquidateAndRedeem = async (
   tx.feePayer = payer.publicKey;
   tx.sign(payer);
 
-  console.log(connection.simulateTransaction(tx));
+  console.log(await connection.simulateTransaction(tx));
   
   const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
   await connection.confirmTransaction(txHash, 'finalized');
