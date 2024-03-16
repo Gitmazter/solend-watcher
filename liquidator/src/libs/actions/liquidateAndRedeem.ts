@@ -137,7 +137,7 @@ export const liquidateAndRedeem = async (
     ),
   );
   const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 250000});
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 400000});
 
   const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
 
