@@ -82,7 +82,7 @@ export async function swapV6(connection: Connection, wallet: Keypair, fromTokenI
     })+' swapping tokens');
 
     const quoteResponse = await (
-        await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${fromTokenInfo.mintAddress}\&outputMint=${toTokenInfo.mintAddress}\&amount=${amount}\&slippageBps=20`)
+        await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${fromTokenInfo.mintAddress}\&outputMint=${toTokenInfo.mintAddress}\&amount=${amount}\&slippageBps=10`)
     ).json();
     // console.log(quoteResponse);
     
