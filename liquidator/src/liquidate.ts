@@ -160,6 +160,14 @@ async function runLiquidator() {
             );
             obligation = parseObligation(obligation.pubkey, postLiquidationObligation!);
             await sendLiquidationWarn(`obligation successfully liquidated ${res.toString()}`);
+            // Unwrap
+            await unwrapTokens(connection, payer);
+            
+            // Rebalancing
+            if (target.length > 0) {        
+              const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
+              // await rebalanceWallet(connection, payer, tokensOracle, walletBalances, target);
+            }
           }
         } catch (err) {
           await sendLiquidationError(`error liquidating ${obligation!.pubkey.toString()}: ` + err);
@@ -167,14 +175,6 @@ async function runLiquidator() {
         }
       }
 
-      // Unwrap
-      await unwrapTokens(connection, payer);
-      
-      // Rebalancing
-      if (target.length > 0) {        
-        const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
-        // await rebalanceWallet(connection, payer, tokensOracle, walletBalances, target);
-      }
 
       // Throttle
       if (process.env.THROTTLE) {
