@@ -60,9 +60,15 @@ async function runLiquidator() {
 
   for (let epoch = 0; ; epoch += 1) {
     for (const market of markets) {
-      const tokensOracle = await getTokensOracleData(connection, market);
-      const allObligations = await getObligations(connection, market.address);
-      const allReserves = await getReserves(connection, market.address);
+        let tokensOracle, allObligations, allReserves;
+        try {
+            tokensOracle = await getTokensOracleData(connection, market);
+            allObligations = await getObligations(connection, market.address);
+            allReserves = await getReserves(connection, market.address);
+        }
+        catch(e) {
+            sendLiquidationError('Failed to load market data. Reason: ' + e)
+        }    
 
 
       for (let obligation of allObligations) {
