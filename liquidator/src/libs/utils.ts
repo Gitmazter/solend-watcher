@@ -12,6 +12,7 @@ import {
 import { findWhere } from 'underscore';
 import { TokenOracleData } from './pyth';
 import { Borrow } from './refreshObligation';
+import { sendLiquidationWarn } from './tg';
 
 export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
@@ -291,6 +292,8 @@ export const getLiquidationThresholdRate = (reserve: Reserve): BigNumber => new 
 
 export const sortBorrows = (borrows: Borrow[]): Borrow[] => {
   return borrows.sort((a, b) => {
+    console.log({a, b});
+    
     if (a.addedBorrowWeightBPS.eq(b.addedBorrowWeightBPS)) {
       return comparePubkeys(b.borrowReserve, a.borrowReserve);
     } else {
