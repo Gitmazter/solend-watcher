@@ -175,6 +175,17 @@ export async function getReserves(connection: Connection, lendingMarketAddr) {
     return resp.map((account) => parseReserve(account.pubkey, account.account));
 }
 
+export async function getRecentPrioritizationFee(connection:Connection) {
+    let prioFee = 0;
+    const fees = await connection.getRecentPrioritizationFees({lockedWritableAccounts:[new PublicKey("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4")]})
+    for (let fee of fees) {
+        if(fee.prioritizationFee > prioFee) {
+            prioFee = fee.prioritizationFee;
+        }
+    }
+    return prioFee;
+}
+
 export async function getWalletBalances(connection, wallet, tokensOracle, market) {
   const promises: Promise<any>[] = [];
   for (const [key, value] of Object.entries(tokensOracle)) {
@@ -185,6 +196,18 @@ export async function getWalletBalances(connection, wallet, tokensOracle, market
   }
   const walletBalances = await Promise.all(promises);
   return walletBalances;
+}
+export async function getWalletBalancesForMarkets(connection, wallet, tokensOracle, markets) {
+    let allBalances:any[] = [];
+    for(const market of markets) {
+        const marketBalances = await getWalletBalances(connection, wallet, tokensOracle, market)
+        for(const balance of marketBalances) {
+            if(allBalances.find(e => e.symbol === balance.symbol) === undefined && balance.balance !== -1) {
+                allBalances.push(balance)
+            }
+        }
+    }
+    return allBalances;
 }
 
 export async function getWalletTokenData(connection: Connection, market: MarketConfig, wallet, mintAddress, symbol) {
@@ -250,8 +273,8 @@ export const getWalletBalance = async (
 
 export function getWalletDistTarget() {
   const target: TokenCount[] = [];
-  const targetRaw = process.env.TARGETS || '';
-
+//   const targetRaw = process.env.TARGETS || '';
+  const targetRaw = 'ISC:1000 USDC:1000 JUP:1500 INF:0.01 JLP:10 USDT:50 Bonk:100000 SOL:0';
   const targetDistributions = targetRaw.split(' ');
   for (const dist of targetDistributions) {
     const tokens = dist.split(':');

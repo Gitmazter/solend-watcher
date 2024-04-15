@@ -5,13 +5,62 @@
 import { findWhere } from 'underscore';
 import BigNumber from 'bignumber.js';
 import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PublicKey } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { TokenCount } from 'global';
-import {swap, swapV6 }from './swap';
+import {swap, swapV6, swapV6DynamicParam }from './swap';
 import { sendLiquidationError } from './tg';
 
 // Padding so we rebalance only when abs(target-actual)/target is greater than PADDING
 const PADDING = Number(process.env.REBALANCE_PADDING) || 0.2;
+
+export async function betterRebalance(connection:Connection, payer:Keypair, tokensOracle:any[], walletBalances:any[], target:any[]) {
+    const baseSymbol = 'ISC'
+    const padding:number = Number(process.env.REBALANCE_PADDING);
+    const baseInfo = tokensOracle.find(e => e.symbol === baseSymbol);
+    
+    for(let i in walletBalances) {
+        const balance = walletBalances[i];
+
+        // ignore if base currency  
+        if(balance.symbol !== baseSymbol) {
+            const oracle = tokensOracle.find(e => e.symbol === balance.symbol);
+            const tokenTarget = target.find(e => e.symbol === balance.symbol).target;
+            const tokenBalance = balance.balance
+            const upperBound:number = Number(tokenTarget)*Number(1+padding)
+            const lowerBound:number = Number(tokenTarget)*Number(1-padding)
+
+            // skip if balance is within target
+            if(lowerBound <= tokenBalance && tokenBalance <= upperBound) {
+                // console.log(`${balance.symbol} within bound`);
+                continue;
+            }
+
+            // rebalance
+            // console.log(`${balance.symbol} outside bound`);
+            const decimals = oracle.decimals.toNumber();
+            const diff = balance.balanceBase - tokenTarget*decimals;
+            console.log({target:tokenTarget*decimals, balance:balance.balanceBase, diff});
+            if (diff > 0) {
+                // sell token for base
+                let swapped = false;
+                while (!swapped) {
+                    swapped = await swapV6DynamicParam(connection, payer, oracle, baseInfo, Math.floor(diff));
+                }
+            }
+            else {
+                // sell base for token
+                const usdVal = -(diff/decimals * oracle.price.toNumber());
+                const amount =  Math.floor((usdVal / baseInfo.price.toNumber())*baseInfo.decimals.toNumber()); 
+                let swapped = false;
+                while (!swapped) {
+                    swapped = await swapV6DynamicParam(connection, payer, baseInfo, oracle, amount);
+                }
+            }
+        }
+    }
+}
+
+
 
 export async function rebalanceWallet(connection, payer, tokensOracle, walletBalances, target) {
   const info = await aggregateInfo(tokensOracle, walletBalances, connection, payer, target);
@@ -24,6 +73,9 @@ export async function rebalanceWallet(connection, payer, tokensOracle, walletBal
 
   // Sort in decreasing order so we sell first then buy
   info.sort((a, b) => b.diffUSD - a.diffUSD);
+
+//   console.log(info);
+//   console.log(findWhere(info, {symbol:'ISC'}));
 
   for (const tokenInfo of info) {
     // skip usdc since it is our base currency
@@ -39,8 +91,7 @@ export async function rebalanceWallet(connection, payer, tokensOracle, walletBal
     let fromTokenInfo;
     let toTokenInfo;
     let amount;
-    const symbol = 'ISC'
-    const ISCTokenInfo = findWhere(info, { symbol });
+    const ISCTokenInfo = findWhere(info, { symbol:'ISC' });
     if (!ISCTokenInfo) {
       console.error('failed to find ISC token info');
     }
@@ -61,6 +112,8 @@ export async function rebalanceWallet(connection, payer, tokensOracle, walletBal
     try {
       await swapV6(connection, payer, fromTokenInfo, toTokenInfo, Math.floor(amount.toNumber()));
     } catch (error) {
+      console.log(error);
+      
       sendLiquidationError({error} + 'failed to swap tokens')
     }
   }

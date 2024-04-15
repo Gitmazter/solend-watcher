@@ -7,13 +7,13 @@ import {
 } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import {
-  getObligations, getReserves, getWalletBalances, getWalletDistTarget, getWalletTokenData, sortBorrows, wait,
+  getObligations, getReserves, getWalletBalances, getWalletBalancesForMarkets, getWalletDistTarget, getWalletTokenData, sortBorrows, wait,
 } from 'libs/utils';
 import { getTokensOracleData } from 'libs/pyth';
 import { Borrow, calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
-import { rebalanceWallet } from 'libs/rebalanceWallet';
+import { betterRebalance, rebalanceWallet } from 'libs/rebalanceWallet';
 import { unwrapTokens } from 'libs/unwrap/unwrapToken';
 import { parseObligation } from '@solendprotocol/solend-sdk';
 import { getMarkets } from './config';
@@ -23,10 +23,8 @@ import { sendLiquidationError, sendLiquidationWarn } from 'libs/tg';
 dotenv.config();
 const NOTIX_BP = Number(process.env.NOTIFICATION_BREAKPOINT)
 const ANTI_SPAM = Number(process.env.ANTI_SPAM_SPREAD)
-
 // list to track which position has received a near liquidation warning
 let notifiedPositions:string[] = [];
-
 
 async function runLiquidator() {
   const rpcEndpoint = process.env.RPC_ENDPOINT;
@@ -56,22 +54,43 @@ async function runLiquidator() {
   
   Running against ${markets.length} pools
   `
+
   await sendLiquidationWarn(introStr)
 
   for (let epoch = 0; ; epoch += 1) {
+    let allOracles:any = [];
     for (const market of markets) {
-        let tokensOracle, allObligations, allReserves;
+        try {
+            let tokensOracle = await getTokensOracleData(connection, market);
+            allOracles = [...allOracles, ...tokensOracle];
+        }
+        catch(e) {
+            await sendLiquidationError('Failed to load oracle data. Reason: ' + e)
+        } 
+    }
+    for (const market of markets) {
+        let tokensOracle:any[] = []
+        let allObligations, allReserves;
         try {
             tokensOracle = await getTokensOracleData(connection, market);
             allObligations = await getObligations(connection, market.address);
             allReserves = await getReserves(connection, market.address);
         }
         catch(e) {
-            sendLiquidationError('Failed to load market data. Reason: ' + e)
-        }    
-
-
+            await sendLiquidationError('Failed to load market data. Reason: ' + e);
+            continue;
+        } 
+        
       for (let obligation of allObligations) {
+        if(target.length > 0) {
+            try {
+                const walletBalances = await getWalletBalancesForMarkets(connection, payer, allOracles, markets);                
+                await betterRebalance(connection, payer, allOracles, walletBalances, target);
+            }
+            catch (e) {
+                console.log(e);   
+            }
+        }
         try {
           while (obligation) {
             const {
@@ -83,8 +102,8 @@ async function runLiquidator() {
               obligation.info,
               allReserves,
               tokensOracle,
-            );
-
+            );      
+            
             const index = notifiedPositions.indexOf(obligation.pubkey.toString())
             // Send all clear msg for a position that is no longer unhealthy and has passed the anti spam spread
             // To avoid updated each time the Breakpoint is crossed in case a Position hovers at the BP
@@ -168,11 +187,13 @@ async function runLiquidator() {
             await sendLiquidationWarn(`obligation successfully liquidated ${res.toString()}`);
             // Unwrap
             await unwrapTokens(connection, payer);
+
             
             // Rebalancing
             if (target.length > 0) {        
               const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
-              // await rebalanceWallet(connection, payer, tokensOracle, walletBalances, target);
+              await rebalanceWallet(connection, payer, allOracles, walletBalances, target);
+            
             }
           }
         } catch (err) {
