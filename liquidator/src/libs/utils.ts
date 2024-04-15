@@ -273,8 +273,8 @@ export const getWalletBalance = async (
 
 export function getWalletDistTarget() {
   const target: TokenCount[] = [];
-//   const targetRaw = process.env.TARGETS || '';
-  const targetRaw = 'ISC:1000 USDC:1000 JUP:1500 INF:0.01 JLP:10 USDT:50 Bonk:100000 SOL:0';
+  const targetRaw = process.env.TARGETS || '';
+//   const targetRaw = 'ISC:1000 USDC:1000 JUP:1500 INF:0.01 JLP:10 USDT:50 Bonk:100000 SOL:0';
   const targetDistributions = targetRaw.split(' ');
   for (const dist of targetDistributions) {
     const tokens = dist.split(':');
