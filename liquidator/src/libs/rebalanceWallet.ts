@@ -113,7 +113,6 @@ export async function rebalanceWallet(connection, payer, tokensOracle, walletBal
       await swapV6(connection, payer, fromTokenInfo, toTokenInfo, Math.floor(amount.toNumber()));
     } catch (error) {
       console.log(error);
-      
       sendLiquidationError({error} + 'failed to swap tokens')
     }
   }
