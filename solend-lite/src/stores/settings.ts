@@ -9,9 +9,14 @@ type RpcEndpoint = {
   endpoint: string;
 };
 
+const ep:RpcEndpoint = {
+    name:'custom',
+    endpoint:"https://fasterai-tyo.rpcpool.com/048aa06d-5a1b-4134-b319-9e1f3f92371c"
+}
+
 export const selectedRpcAtom = atomWithStorage<RpcEndpoint>(
   'selectedRpc',
-  DEFAULT_RPC_ENDPOINTS[0],
+  ep,
 );
 
 export const refreshCounterAtom = atom(0);

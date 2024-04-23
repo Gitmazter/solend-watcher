@@ -1,23 +1,29 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-restricted-syntax */
+
 import {
   Connection,
   Keypair,
   PublicKey,
 } from '@solana/web3.js';
+
 import dotenv from 'dotenv';
+
 import {
-  getObligations, getReserves, getWalletBalancesForMarkets, getWalletDistTarget, getWalletTokenData, sortBorrows, wait,
-} from 'libs/utils';
-import { getTokensOracleData } from 'libs/pyth';
-import { Borrow, calculateRefreshedObligation } from 'libs/refreshObligation';
-import { readSecret } from 'libs/secret';
-import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
-import { betterRebalance } from 'libs/rebalanceWallet';
-import { unwrapTokens } from 'libs/unwrap/unwrapToken';
-import { parseObligation } from '@solendprotocol/solend-sdk';
+    getObligations, 
+    getReserves, getWalletBalancesForMarkets, getWalletDistTarget, getWalletTokenData, sortBorrows, wait,
+} from './libs/utils';
+import { Borrow, calculateRefreshedObligation } from './libs/refreshObligation';
+import { liquidateAndRedeem } from './libs/actions/liquidateAndRedeem';
+import { sendLiquidationError, sendLiquidationWarn } from './libs/tg';
+import { ObligationCollateral, parseObligation  } from '@solendprotocol/solend-sdk';
+import { betterRebalance } from './libs/rebalanceWallet';
+import { unwrapTokens } from './libs/unwrap/unwrapToken';
+import { getTokensOracleData } from './libs/pyth';
+import { readSecret } from './libs/secret';
 import { getMarkets } from './config';
-import { sendLiquidationError, sendLiquidationWarn } from 'libs/tg';
+import BigNumber from 'bignumber.js';
+import { findWhere } from 'underscore';
 
 dotenv.config();
 const NOTIX_BP = Number(process.env.NOTIFICATION_BREAKPOINT);
@@ -124,10 +130,29 @@ async function runLiquidator() {
                             notifiedPositions.push(obligation.pubkey.toString())
                         }   
 
+                        let borrow_value = 0;
+                        
+                        let borrowString = 'Deposits: ';
+
+                        let deposit_value = 0;
+                        let depositString = 'Deposits: '
+                        obligation.info.deposits.forEach((deposit: ObligationCollateral)  => {
+                            const { price, decimals, symbol } = findWhere(tokensOracle, { reserveAddress: deposit.depositReserve.toString() });
+                            deposit_value += (deposit.depositedAmount.toNumber()*price.toString())/decimals;
+                            obligation?.info.owner
+                            depositString += `${symbol}: ${deposit.depositedAmount.toNumber()/decimals}`
+                        });
+                        if(deposit_value < 0.01) {
+                            break;
+                        }
+                        
+                        
+                        
                         // Do nothing if obligation is healthy
                         if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
                             break;
                         }
+                        console.log(depositString);
 
                         // select repay token that has the highest market value
                         const selectedBorrow: Borrow | undefined = sortBorrows(borrows)[0];
@@ -139,6 +164,7 @@ async function runLiquidator() {
                                 selectedDeposit = deposit;
                             };
                         });
+                        
 
                         if (!selectedBorrow || !selectedDeposit) {
                             // skip toxic obligations caused by toxic oracle data
