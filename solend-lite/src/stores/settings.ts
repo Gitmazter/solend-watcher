@@ -1,5 +1,5 @@
 import { atomWithStorage } from 'jotai/utils';
-import { DEFAULT_RPC_ENDPOINTS } from 'common/config';
+// import { DEFAULT_RPC_ENDPOINTS } from 'common/config';
 import { atom } from 'jotai';
 import { Connection } from '@solana/web3.js';
 import SwitchboardProgram from '@switchboard-xyz/sbv2-lite';

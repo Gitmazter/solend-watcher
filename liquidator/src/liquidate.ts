@@ -93,13 +93,29 @@ async function runLiquidator() {
         for (const market of markets) {
             let tokensOracle:any[] = []
             let allObligations, allReserves;
+            if(!allObligations){
+                try {
+                    allObligations = await getObligations(connection, market.address);
+                }
+                catch(e) {
+                    await sendLiquidationError('Failed to load Obligation data. Reason: ' + e);
+                    continue;
+                } 
+            }
+            if(!allReserves){
+                try {
+                    allReserves = await getReserves(connection, market.address);
+                }
+                catch(e) {
+                    await sendLiquidationError('Failed to load Reserve data. Reason: ' + e);
+                    continue;
+                } 
+            }
             try {
                 tokensOracle = await getTokensOracleData(connection, market);
-                allObligations = await getObligations(connection, market.address);
-                allReserves = await getReserves(connection, market.address);
             }
             catch(e) {
-                await sendLiquidationError('Failed to load market data. Reason: ' + e);
+                await sendLiquidationError('Failed to load oracles. Reason: ' + e);
                 continue;
             } 
             
@@ -187,8 +203,8 @@ async function runLiquidator() {
                         // }
 
                         if (balanceBase) {
-                            await sendLiquidationWarn(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
-                            break;
+                            // await sendLiquidationWarn(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
+                            // break;
                         } else if (balanceBase < 0) {
                             await sendLiquidationWarn(`failed to get wallet balance for ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}. 
                                 Potentially network error or token account does not exist in wallet`);

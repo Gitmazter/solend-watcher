@@ -105,7 +105,7 @@ const obligationsFamily = atomFamily((address: string) =>
     },
   ),
 );
-
+ 
 export const selectedObligationAddressAtom = atomWithDefault<string | null>(
   () => {
     const queryParams = new URLSearchParams(window.location.search);
