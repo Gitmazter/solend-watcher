@@ -8,6 +8,7 @@
     "@solendprotocol/solend-sdk": "^0.10.8",
     "base-64": "^1.0.0",
     "bs58": "^5.0.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "mongodb": "^6.7.0"
   }
 }
