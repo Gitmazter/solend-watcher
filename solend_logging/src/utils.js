@@ -47,7 +47,7 @@ function sendRequest(ws) {
 async function sendTgMessage(message) {
     console.log(message);
     if(typeof(message) == 'object') {
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(formatted_message)}`;
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(JSON.stringify(message))}`;
         await fetch(url);
     }
     else {
