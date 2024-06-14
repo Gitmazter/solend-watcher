@@ -200,6 +200,7 @@ async function handle_signature (signature) {
         if(actions.length == 0) {
             await sendTgMessage(`Unhandled event occured: ${logs}`);
         }
+        
         return new TxInfo(
             signature, 
             tx.blockTime, 

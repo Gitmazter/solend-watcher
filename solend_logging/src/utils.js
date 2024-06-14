@@ -47,8 +47,15 @@ function sendRequest(ws) {
 async function sendTgMessage(message) {
     console.log(message);
     if(typeof(message) == 'object') {
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(JSON.stringify(message))}`;
-        await fetch(url);
+        try {
+            const msgStr = JSON.stringify(message)
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msgStr)}`;
+            await fetch(url);
+        }
+        catch(e) {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
+            await fetch(url);
+        }
     }
     else {
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
