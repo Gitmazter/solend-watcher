@@ -8,6 +8,10 @@ const action_logs =  {
     'Program log: Instruction: Borrow Obligation Liquidity': "borrow",
 };
 
+const error_logs = {
+    'Program log: Switchboard oracle price is stale':'stale oracle'
+}
+
 const tokens = {
     "J9BcrQfX4p9D1bvLzRNCbMDv8f44a9LFdeqNE4Yk2WMD":"ISC",
     "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4":"JLP",

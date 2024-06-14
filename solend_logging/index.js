@@ -195,12 +195,17 @@ async function handle_signature (signature) {
                 };
             };
         });
-
-        const obligation_addr = programAccount.pubkey.toString()
+        let obligation_addr = 'not in list'
+        try {
+            obligation_addr = programAccount.pubkey.toString();
+        }
+        catch(e) {
+            console.log(e);
+        }
         if(actions.length == 0) {
             await sendTgMessage(`Unhandled event occured: ${logs}`);
-        }
-        
+        } 
+
         return new TxInfo(
             signature, 
             tx.blockTime, 
