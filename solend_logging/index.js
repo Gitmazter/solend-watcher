@@ -119,14 +119,14 @@ class TxInfo {
         signature, 
         block_time, 
         pda, 
-        action, 
+        actions, 
         transfers,
         err,
         status
     ) {
         this.blockTime = block_time
         this.date = new Date(block_time*1000).toISOString();
-        this.eventType = action;
+        this.eventType = actions;
         this.transfers = transfers;
         this.account = pda ;
         this.status = status;
@@ -140,7 +140,7 @@ async function handle_signature (signature) {
     const tx = await connection.getTransaction(signature, {maxSupportedTransactionVersion:0});
     if(tx){
         let programAccount = '';
-        let action = 'unhandled';
+        let actions = [];
         let err = tx.meta.err;
         let transfers = {};
         
@@ -150,11 +150,11 @@ async function handle_signature (signature) {
         
         for(let log of logs) {
             if((Object.keys(action_logs)).indexOf(log) > -1){
-                action = action_logs[log];
+                actions.push(action_logs[log]);
             };
         };
 
-        if(action == 'create') {
+        if(actions.indexOf('create') > -1) {
             await update_obligations();
         };
         
@@ -204,7 +204,7 @@ async function handle_signature (signature) {
             signature, 
             tx.blockTime, 
             obligation_addr, 
-            action, 
+            actions, 
             transfers,
             err, 
             'finalized'

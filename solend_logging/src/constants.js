@@ -1,6 +1,6 @@
 const action_logs =  {
-    'create':'create',
-    'liquidate':'liquidate',
+    'Program log: Instruction: InitializeAccount3':'create account',
+    'liquidate':'liquidate position',
     'Program log: Instruction: RedeemFees':'redeem fees',
     'Program log: Instruction: Withdraw Obligation Collateral and Redeem Reserve Collateral': "withdraw",
     'Program log: Instruction: Deposit Reserve Liquidity and Obligation Collateral': "deposit",
