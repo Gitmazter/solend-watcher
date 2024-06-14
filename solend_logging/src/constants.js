@@ -4,6 +4,7 @@ const action_logs =  {
     'Program log: Instruction: RedeemFees':'redeem fees',
     'Program log: Instruction: Withdraw Obligation Collateral and Redeem Reserve Collateral': "withdraw",
     'Program log: Instruction: Deposit Reserve Liquidity and Obligation Collateral': "deposit",
+    'Program log: Instruction: DepositMax': "deposit",
     'Program log: Instruction: Repay Obligation Liquidity': "repay",
     'Program log: Instruction: Borrow Obligation Liquidity': "borrow",
 };

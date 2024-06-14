@@ -1,17 +1,18 @@
 const { 
-    OBLIGATION_SIZE, 
-    SOLEND_PRODUCTION_PROGRAM_ID, 
-    parseObligation 
-} = require('@solendprotocol/solend-sdk');
+    sleep, 
+    get_obligations, 
+    sendRequest, 
+    sendTgMessage 
+} = require('./src/utils.js');
 const { 
     action_logs, 
     tokens 
-} = require('./src/constants');
+} = require('./src/constants.js');
+const { parseObligation } = require('@solendprotocol/solend-sdk');
 const { MongoClient } = require('mongodb');
 const web3 = require('@solana/web3.js');
 const dotenv = require('dotenv');
 const WebSocket = require('ws');
-const { sleep, get_obligations, sendRequest, sendTgMessage } = require('./src/utils');
 
 /* ENV VARS */
 dotenv.config({path:'./.env'});
