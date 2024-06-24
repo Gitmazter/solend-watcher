@@ -21,7 +21,7 @@ const SOLANA_RPC= process.env.SOLANA_RPC;
 const MONGO_URL = process.env.MONGO_URL;
 
 // Create a WebSocket connection
-const ws = new WebSocket(SOLANA_RPC_WSS);
+// const ws = new WebSocket(SOLANA_RPC_WSS);
 
 // Create a Mongo Connection
 const client = new MongoClient(MONGO_URL);
@@ -43,12 +43,20 @@ let interval_obligations = undefined;
 let interval_ping = undefined;
 
 /* WEBSOCKET */
+function initWebsocket () {
+    const ws = new WebSocket(SOLANA_RPC_WSS);
+    ws.onopen = onOpen(ws);
+    ws.onmessage = onMessage;
+    ws.onerror = onError;
+    ws.onclose = onClose;
+}
+
 
 // Define WebSocket event handlers
-ws.on('open', async function open() {
+async function onOpen(ws) {
     await test_mongo_connection();
 
-    await sendTgMessage('Initializing Obligations');
+    console.log('Initializing Obligations');
 
     try{
         await update_obligations();
@@ -63,27 +71,33 @@ ws.on('open', async function open() {
     }, 900000);
 
     await sendTgMessage('WebSocket is open');
-    
     sendRequest(ws);  // Send a request once the WebSocket is open
 
     // Keep the connection alive
     interval_ping = setInterval(() => {
         ws.ping('1');
     }, ping_interval);
-});
+};
 
-ws.on('message', async function incoming(data) {
+async function onMessage(event) {
+    const data = event.data
+    console.log(data);
     const messageStr = data.toString('utf8');
     try {
         const messageObj = JSON.parse(messageStr);
         const data = messageObj.params;
         if (data) {
             const signature = messageObj.params.result.value.signature;
-            await sendTgMessage(`Received: ${signature}`);
+            console.log(`Received: ${signature}`);
             let tx_info;
             if(signature){
                 tx_info = await handle_signature(signature);
-                await sendTgMessage(tx_info);
+                if(tx_info.eventType.indexOf('liquidate') != -1){
+                    await sendTgMessage(tx_info);
+                } 
+                else {
+                    console.log(tx_info)
+                }
             };
             // Handle info
             if(tx_info !== null){
@@ -99,19 +113,18 @@ ws.on('message', async function incoming(data) {
     } catch (e) {
         sendTgMessage(`Failed to parse JSON: ${e}`);
     };
-});
+};
 
-ws.on('error', async function error(err) {
+async function onError(err) {
     await sendTgMessage(`WebSocket error: ${err}`);
-});
+};
 
-ws.on('close',async function close() {
-    await sendTgMessage('WebSocket is closed, please restart solend_logging');
-    clearInterval(interval_obligations);
+async function onClose() {
+    console.log('WebSocket is closed, please restart solend_logging');
     clearInterval(interval_ping);
-    process.exit(2)
-}); 
-
+    initWebsocket()
+}; 
+initWebsocket()
 /* UTILS */
 
 class TxInfo {
@@ -223,7 +236,7 @@ async function handle_signature (signature) {
 
 async function update_obligations () {
     if(obligations) {
-        await sendTgMessage('Updating Obligations');
+        console.log('Updating Obligations');
     };
 
     let raw_obligations;
@@ -239,7 +252,7 @@ async function update_obligations () {
     const parsedObligations = raw_obligations.map(
         (account) => parseObligation(account.pubkey, account.account));
     obligations = parsedObligations;
-    await sendTgMessage('Obligations Updated');
+    console.log('Obligations Updated');
     return;
 };
 
@@ -247,7 +260,7 @@ async function update_obligations () {
 async function test_mongo_connection () {
     try {
         await collection_logs.findOne({})
-        await sendTgMessage('Mongo DB Connected');
+        console.log('Mongo DB Connected');
     }
     catch (e) {
         await sendTgMessage(`Unable to communicate with MongoDb server at ${MONGO_URL}. Exiting with code 1, err: ${e}`)

@@ -28,6 +28,7 @@ const get_obligations = async (connection) => {
 
 // Function to send a request to the WebSocket server
 function sendRequest(ws) {
+
     const request = {
         jsonrpc: "2.0",
         id: 42069,
