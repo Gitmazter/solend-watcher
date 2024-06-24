@@ -224,6 +224,10 @@ async function runLiquidator() {
                             obligation,
                         );
                         
+
+                        if(res == null) {
+                            continue;
+                        }
                         // swap back to base token
                             
                         const postLiquidationObligation = await connection.getAccountInfo(

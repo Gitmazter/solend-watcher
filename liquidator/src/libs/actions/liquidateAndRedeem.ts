@@ -17,6 +17,7 @@ import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
 import { MarketConfig, MarketConfigReserve } from 'global';
+import { sendLiquidationError } from 'libs/tg';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
@@ -136,19 +137,29 @@ export const liquidateAndRedeem = async (
       payer.publicKey,
     ),
   );
-  const PRIORITY_RATE = process.env.PRIORITY_RATE; // MICRO_LAMPORTS 
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: 6000000000});
 
-  const tx = new Transaction().add(PRIORITY_FEE_IX).add(...ixs);
+  const tx = new Transaction().add(...ixs);
+  
+  const { blockhash } = await connection.getLatestBlockhash();
 
-  const { blockhash } = await connection.getRecentBlockhash();
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;
   tx.sign(payer);
 
-  console.log(await connection.simulateTransaction(tx));
+  const PRIORITY_RATE = 100;
+  const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({ 
+    microLamports: PRIORITY_RATE 
+  });
+  tx.add(addPriorityFee);
   
-  const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
-  await connection.confirmTransaction(txHash, 'finalized');
-  return txHash
+  const simulation = await connection.simulateTransaction(tx);
+  if(simulation.value.err == null) {
+      const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(txHash);
+      return txHash
+  }
+  else {
+    sendLiquidationError(`error liquidating ${obligation!.pubkey.toString()}: ` + simulation.value.err)
+    return null
+  }
 };
