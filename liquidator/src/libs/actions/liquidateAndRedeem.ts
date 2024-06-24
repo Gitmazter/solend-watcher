@@ -18,6 +18,7 @@ import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructio
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
 import { MarketConfig, MarketConfigReserve } from 'global';
 import { sendLiquidationError } from 'libs/tg';
+import { formatErrorMsg } from '@solendprotocol/solend-sdk';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
@@ -140,26 +141,38 @@ export const liquidateAndRedeem = async (
 
   const tx = new Transaction().add(...ixs);
   
+  const PRIORITY_RATE = 15000;
+  const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({ 
+    microLamports: PRIORITY_RATE 
+  });
+  tx.add(addPriorityFee);
+
   const { blockhash } = await connection.getLatestBlockhash();
 
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;
   tx.sign(payer);
-
-  const PRIORITY_RATE = 100;
-  const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({ 
-    microLamports: PRIORITY_RATE 
-  });
-  tx.add(addPriorityFee);
   
   const simulation = await connection.simulateTransaction(tx);
+  
   if(simulation.value.err == null) {
-      const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
-      await connection.confirmTransaction(txHash);
-      return txHash
+        const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+        const res = await connection.confirmTransaction(txHash, 'confirmed');
+        if(res.value.err) {
+            const confirmation = await connection.getTransaction(txHash, {maxSupportedTransactionVersion:0, commitment:'confirmed'});
+            const logs = confirmation!.meta!.logMessages!;
+            const last_log = logs[logs?.length -1];
+            const formatted_error = formatErrorMsg(last_log);
+            sendLiquidationError(`BIG error liquidating ${obligation!.pubkey.toString()}: ` + formatted_error);
+            return null
+        }
+        return txHash
   }
   else {
-    sendLiquidationError(`error liquidating ${obligation!.pubkey.toString()}: ` + simulation.value.err)
-    return null
-  }
+    const logs = simulation.value.logs!;
+    const last_log = logs[logs?.length -1];
+    const formatted_error = formatErrorMsg(last_log);
+    sendLiquidationError(`BIG error liquidating ${obligation!.pubkey.toString()}: ` + formatted_error);
+    return null;
+  };
 };

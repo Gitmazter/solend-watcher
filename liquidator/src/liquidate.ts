@@ -16,7 +16,7 @@ import {
 import { Borrow, calculateRefreshedObligation } from './libs/refreshObligation';
 import { liquidateAndRedeem } from './libs/actions/liquidateAndRedeem';
 import { sendLiquidationError, sendLiquidationWarn } from './libs/tg';
-import { ObligationCollateral, parseObligation  } from '@solendprotocol/solend-sdk';
+import { ObligationCollateral, formatErrorMsg, parseObligation  } from '@solendprotocol/solend-sdk';
 import { betterRebalance } from './libs/rebalanceWallet';
 import { unwrapTokens } from './libs/unwrap/unwrapToken';
 import { getTokensOracleData } from './libs/pyth';
@@ -70,7 +70,7 @@ async function runLiquidator() {
         }
         try {
             const walletBalances = await getWalletBalancesForMarkets(connection, payer, allOracles, markets);                
-            await betterRebalance(connection, payer, allOracles, walletBalances, target);
+            // await betterRebalance(connection, payer, allOracles, walletBalances, target);
         }
         catch (e) {
             console.log(e);   
@@ -162,8 +162,6 @@ async function runLiquidator() {
                             break;
                         }
                         
-                        
-                        
                         // Do nothing if obligation is healthy
                         if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
                             break;
@@ -223,10 +221,9 @@ async function runLiquidator() {
                             market,
                             obligation,
                         );
-                        
 
                         if(res == null) {
-                            continue;
+                            break;
                         }
                         // swap back to base token
                             
@@ -237,12 +234,11 @@ async function runLiquidator() {
                         obligation = parseObligation(obligation.pubkey, postLiquidationObligation!);
                         await sendLiquidationWarn(`obligation successfully liquidated ${res.toString()}`);
                         await unwrapTokens(connection, payer);
-
                         // Rebalancing
                         if(target.length > 0) {
                             try {
                                 const walletBalances = await getWalletBalancesForMarkets(connection, payer, allOracles, markets);                
-                                await betterRebalance(connection, payer, allOracles, walletBalances, target);
+                                // await betterRebalance(connection, payer, allOracles, walletBalances, target);
                             }
                             catch (e) {
                                 console.log(e);   
@@ -251,8 +247,9 @@ async function runLiquidator() {
                     };
                 } 
                 catch (err) {
+                    
                     await sendLiquidationError(`error liquidating ${obligation!.pubkey.toString()}: ` + err);
-                    continue;
+                    
                 };
             };
             // Throttle

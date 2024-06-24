@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "rm -rf build/ && tsc -p tsconfig.json",
-    "start": "ts-node -r tsconfig-paths/register build/liquidate.js",
+    "start": "rm -rf build/ && tsc -p tsconfig.json && ts-node -r tsconfig-paths/register build/liquidate.js",
     "lint": "eslint . --ext .js --ext .tsx,.ts,.js,.jsx src/ --fix .gitignore",
     "compose-clean": "docker-compose rm -f ./docker-compose.yaml"
   },
@@ -30,8 +30,8 @@
     "@solana/spl-token": "^0.1.8",
     "@solana/spl-token-registry": "^0.2.114",
     "@solana/spl-token-v2": "npm:@solana/spl-token@^0.2.0",
-    "@solana/web3.js": "=1.76.0",
-    "@solendprotocol/solend-sdk": "=0.6.9",
+    "@solana/web3.js": "^1.93.1",
+    "@solendprotocol/solend-sdk": "^0.10.8",
     "@switchboard-xyz/sbv2-lite": "^0.1.0",
     "@switchboard-xyz/switchboard-api": "^0.2.160",
     "@unstake-it/sol": "^0.1.2",
