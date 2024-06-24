@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:21.2.0
 
 # Create Directory for the Container
 RUN mkdir -p /home/solend/app
@@ -9,15 +9,16 @@ ENV NODE_OPTIONS=--max_old_space_size=4096
 
 # Only copy the package.json file to work directory
 COPY package.json ./
+
+# Install Packages
+RUN yarn install
+
 COPY .env ./
 COPY id.json ./
-# Install all Packages
-RUN npm install --force
 
 # Copy all other source code to work directory
 COPY src /home/solend/app/src
 COPY tsconfig.json /home/solend/app
-RUN npm run build
 
 # Start
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
